@@ -1,0 +1,35 @@
+{
+    "name": "ssntpl/data-fields",
+    "type": "library",
+    "version": "1.0.0",
+    "keywords": [
+        "laravel", 
+        "ssntpl",
+        "data-fields", 
+        "data", 
+        "fields"
+    ],
+    "homepage": "https://github.com/ssntpl/data-fields",
+    "support": {
+        "issues": "https://github.com/ssntpl/data-fields/issues",
+        "source": "https://github.com/ssntpl/data-fields"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ssntpl\\DataFields\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Abhishek Sharma",
+            "email": "abhishek.sharma@ssntpl.in",
+            "homepage": "https://ssntpl.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": "*",
+        "laravel/framework": "*"
+    }
+}
