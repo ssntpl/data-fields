@@ -52,6 +52,8 @@ The package publishes a configuration file to `config/data-fields.php`:
 return [
     'data_set_model' => \Ssntpl\DataFields\Models\DataSet::class,
     'data_field_model' => \Ssntpl\DataFields\Models\DataField::class,
+    'data_sets_timestamps' => false,
+    'data_fields_timestamps' => false,
 ];
 ```
 
