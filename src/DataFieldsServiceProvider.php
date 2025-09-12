@@ -27,7 +27,7 @@ class DataFieldsServiceProvider extends ServiceProvider
             __DIR__ . "/../config/data-fields.php" => config_path("data-fields.php"),
         ], 'data-fields-config');
 
-        $this->publishesMigrations([
+        $this->publishes([
             __DIR__.'/../database/migrations/create_data_fields_table.php' => database_path('migrations/2025_01_01_000001_create_data_fields_table.php'),
             __DIR__.'/../database/migrations/create_data_sets_table.php' => database_path('migrations/2025_01_01_000002_create_data_sets_table.php'),
         ], 'data-fields-migrations');
