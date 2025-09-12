@@ -19,6 +19,13 @@
             "Ssntpl\\DataFields\\": "src/"
         }
     },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ssntpl\\DataFields\\DataFieldsServiceProvider"
+            ]
+        }
+    },
     "authors": [
         {
             "name": "Abhishek Sharma",
