@@ -3,14 +3,13 @@
 namespace Ssntpl\DataFields\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Log;
 use Ssntpl\DataFields\Traits\HasDataFields;
 
 class DataSet extends Model
 {
     use HasDataFields;
 
-    protected $primaryFillable = [
+    protected $fillable = [
         'id',
         'owner_id',
         'owner_type',
@@ -19,11 +18,6 @@ class DataSet extends Model
         'sort_order',
         'meta_data',
     ];
-
-    public function getFillable()
-    {
-        return array_merge($this->primaryFillable, $this->fillable ?? []);
-    }
     
     public function owner()
     {

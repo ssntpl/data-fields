@@ -4,12 +4,11 @@ namespace Ssntpl\DataFields\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Ssntpl\DataFields\Traits\HasDataFields;
-use Ssntpl\LaravelFiles\Traits\HasFiles;
 class DataField extends Model
 {
     use HasDataFields;
 
-    protected $primaryFillable = [
+    protected $fillable = [
         'id',
         'owner_id',
         'owner_type',
@@ -21,11 +20,6 @@ class DataField extends Model
         'sort_order',
         'meta_data',
     ];
-
-    public function getFillable()
-    {
-        return array_merge($this->primaryFillable, $this->fillable ?? []);
-    }
 
     protected $casts = [
         'validations' => 'array',
