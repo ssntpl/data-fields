@@ -1,7 +1,6 @@
 {
     "name": "ssntpl/data-fields",
     "type": "library",
-    "version": "1.0.0",
     "keywords": [
         "laravel", 
         "ssntpl",
