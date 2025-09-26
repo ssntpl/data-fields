@@ -10,7 +10,12 @@ trait HasDataSets
 
     public function data_sets()
     {
-        return $this->morphMany(config('data-fields.data_set_model', DataSet::class), 'owner');
+        return $this->morphMany($this->getDataSetModel(), 'owner');
+    }
+
+    protected function getDataSetModel()
+    {
+        return config('data-fields.data_set_model', DataSet::class);
     }
 
 }

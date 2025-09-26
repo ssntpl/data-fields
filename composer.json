@@ -36,6 +36,7 @@
     "prefer-stable": true,
     "require": {
         "php": "*",
-        "laravel/framework": "*"
+        "laravel/framework": "*",
+        "ssntpl/laravel-files": "^0.1.3"
     }
 }
