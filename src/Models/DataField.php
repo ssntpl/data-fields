@@ -3,10 +3,14 @@
 namespace Ssntpl\DataFields\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Ssntpl\DataFields\Casts\FieldValueCast;
 use Ssntpl\DataFields\Traits\HasDataFields;
+use Ssntpl\LaravelFiles\Traits\HasFiles;
+
 class DataField extends Model
 {
     use HasDataFields;
+    use HasFiles;
 
     protected $fillable = [
         'id',
@@ -23,6 +27,8 @@ class DataField extends Model
 
     protected $casts = [
         'validations' => 'array',
+        'meta_data' => 'array',
+        'value' => FieldValueCast::class,
     ];
 
     public function owner()

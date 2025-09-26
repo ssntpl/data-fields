@@ -19,6 +19,10 @@ class DataSet extends Model
         'meta_data',
     ];
     
+    protected $casts = [
+        'meta_data' => 'array',
+    ];
+    
     public function owner()
     {
         return $this->morphTo();

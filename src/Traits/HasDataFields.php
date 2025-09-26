@@ -8,7 +8,12 @@ trait HasDataFields
 {
     public function fields()
     {
-        return $this->morphMany(config('data-fields.data_field_model', DataField::class), 'owner');
+        return $this->morphMany($this->getDataFieldModel(), 'owner');
+    }
+
+    protected function getDataFieldModel()
+    {
+        return config('data-fields.data_field_model', DataField::class);
     }
 
 }
