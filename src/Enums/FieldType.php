@@ -16,4 +16,22 @@ class FieldType
     public const FILE = 'File';
     public const JSON = 'Json';
     public const ARRAY = 'Array';
+
+    public static function getAllTypes()
+    {
+        return [
+            self::BOOLEAN,
+            self::CHECK,
+            self::TEXT,
+            self::NUMBER,
+            self::SINGLE,
+            self::MULTIPLE,
+            self::DATE,
+            self::TIME,
+            self::DATETIME,
+            self::FILE,
+            self::JSON,
+            self::ARRAY,
+        ];
+    }
 }
