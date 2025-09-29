@@ -11,9 +11,28 @@ class DataField extends Model
 {
     use HasDataFields;
     use HasFiles;
+    
+    public const BOOL = 'bool';
+    public const TEXT = 'text';
+    public const NUMBER = 'number';
+    public const SELECT_SINGLE = 'select_single';
+    public const SELECT_MULTIPLE = 'select_multiple';
+    public const DATE = 'date';
+    public const TIME = 'time';
+    public const DATETIME = 'datetime';
+    public const FILE = 'file';
+    public const FILES = 'files';
+    public const JSON = 'json';
+    public const ARRAY = 'array';
 
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+    */
+    public $timestamps = false;
+    
     protected $fillable = [
-        'id',
         'owner_id',
         'owner_type',
         'description',
@@ -30,6 +49,24 @@ class DataField extends Model
         'meta_data' => 'array',
         'value' => FieldValueCast::class,
     ];
+
+    public static function getAllTypes()
+    {
+        return [
+            self::BOOL,
+            self::TEXT,
+            self::NUMBER,
+            self::SELECT_SINGLE,
+            self::SELECT_MULTIPLE,
+            self::DATE,
+            self::TIME,
+            self::DATETIME,
+            self::FILE,
+            self::FILES,
+            self::JSON,
+            self::ARRAY,
+        ];
+    }
 
     public function owner()
     {
@@ -64,10 +101,4 @@ class DataField extends Model
 
         return $newDataSet;
     }
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
-    public $timestamps = false;
 }
