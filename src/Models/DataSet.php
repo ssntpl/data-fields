@@ -9,6 +9,13 @@ class DataSet extends Model
 {
     use HasDataFields;
 
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
+
     protected $fillable = [
         'id',
         'owner_id',
@@ -53,10 +60,4 @@ class DataSet extends Model
 
         return $newDataSet;
     }
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
-    public $timestamps = false;
 }
