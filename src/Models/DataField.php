@@ -75,14 +75,13 @@ class DataField extends Model
 
     public function delete()
     {
+        $dataFieldFiles = $this->files()->get();
+        foreach($dataFieldFiles as $file) {
+            $file->delete();
+        }
         $dataFields = $this->fields()->get();
         foreach($dataFields as $dataField)
         {
-            $dataFieldFiles = $dataField->files()->get();
-            foreach($dataFieldFiles as $dataFieldFile)
-            {
-                $dataFieldFile->delete();
-            }
             $dataField->delete();
         }
         return parent::delete();
