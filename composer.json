@@ -37,6 +37,6 @@
     "require": {
         "php": "*",
         "laravel/framework": "*",
-        "ssntpl/laravel-files": "^0.1.3"
+        "ssntpl/laravel-files": "^0.1.5"
     }
 }
