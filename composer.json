@@ -1,5 +1,6 @@
 {
     "name": "ssntpl/data-fields",
+    "description": "Laravel Permissions.",
     "type": "library",
     "keywords": [
         "laravel", 
