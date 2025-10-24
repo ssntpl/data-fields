@@ -17,5 +17,4 @@ trait HasDataSets
     {
         return config('data-fields.data_set_model', DataSet::class);
     }
-
 }

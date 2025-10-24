@@ -35,6 +35,7 @@ class DataField extends Model
     protected $fillable = [
         'owner_id',
         'owner_type',
+        'parent_id',
         'description',
         'key',
         'value',
@@ -68,6 +69,11 @@ class DataField extends Model
         ];
     }
 
+    protected function getClass()
+    {
+        return config('data-fields.data_field_model', DataField::class);
+    }
+
     public function owner()
     {
         return $this->morphTo();
@@ -83,6 +89,11 @@ class DataField extends Model
         foreach($dataFields as $dataField)
         {
             $dataField->delete();
+        }
+        if ($this->children()->get()) {
+            foreach ($this->children()->get() as $child) {
+                $child->delete();
+            }
         }
         return parent::delete();
     }
@@ -100,4 +111,15 @@ class DataField extends Model
 
         return $newDataSet;
     }
+
+    public function parent()
+    {
+        return $this->belongsTo($this->getClass(), 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany($this->getClass(), 'parent_id');
+    }
+
 }

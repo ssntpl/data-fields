@@ -15,5 +15,4 @@ trait HasDataFields
     {
         return config('data-fields.data_field_model', DataField::class);
     }
-
 }

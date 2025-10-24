@@ -1,6 +1,6 @@
 {
     "name": "ssntpl/data-fields",
-    "description": "Laravel Permissions.",
+    "description": "Laravel Data Fields.",
     "type": "library",
     "keywords": [
         "laravel", 
@@ -38,6 +38,6 @@
     "require": {
         "php": "*",
         "laravel/framework": "*",
-        "ssntpl/laravel-files": "^0.1.5"
+        "ssntpl/laravel-files": "^0.1"
     }
 }

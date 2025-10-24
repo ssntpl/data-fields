@@ -19,6 +19,7 @@ class CreateDataSetsTable extends Migration
             $table->string('owner_type');
             $table->index(['owner_id', 'owner_type'], 'data_sets_owner_id_owner_type_index');
 
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->string('name')->nullable();
             $table->string('type');
             $table->integer('sort_order')->nullable();
