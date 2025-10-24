@@ -19,6 +19,7 @@ class CreateDataFieldsTable extends Migration
             $table->string('owner_type');
             $table->index(['owner_id', 'owner_type'], 'data_fields_owner_id_owner_type_index');
 
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->text('description')->nullable();
             $table->string('key')->nullable();
             $table->text('value')->nullable();

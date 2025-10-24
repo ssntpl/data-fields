@@ -32,7 +32,7 @@ class FieldValueCast implements CastsAttributes
 
         return match($attributes['type'] ?? DataField::TEXT) {
             DataField::SELECT_MULTIPLE, DataField::ARRAY, DataField::JSON => json_encode($value),
-            DataField::BOOL => $value ? '1' : '0',
+            DataField::BOOL => in_array($value, ['1', 'true', 'yes', 'on'], true),
             DataField::FILE, DataField::FILES => $this->setFileAsJson($value),
             DataField::DATE => Carbon::parse($value)->toDateString(),
             DataField::TIME => Carbon::parse($value)->toTimeString(),

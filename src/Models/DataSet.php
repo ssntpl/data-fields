@@ -20,6 +20,7 @@ class DataSet extends Model
         'id',
         'owner_id',
         'owner_type',
+        'parent_id',
         'name',
         'type',
         'sort_order',
@@ -29,6 +30,11 @@ class DataSet extends Model
     protected $casts = [
         'meta_data' => 'array',
     ];
+
+    protected function getClass()
+    {
+        return config('data-fields.data_set_model', DataSet::class);
+    }
     
     public function owner()
     {
@@ -42,6 +48,11 @@ class DataSet extends Model
         {
             $dataField->delete();
             // DataField::destroy($dataField->id);
+        }
+        if ($this->children()->get()) {
+            foreach ($this->children()->get() as $child) {
+                $child->delete();
+            }
         }
         return parent::delete();
     }
@@ -59,5 +70,15 @@ class DataSet extends Model
         }
 
         return $newDataSet;
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo($this->getClass(), 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany($this->getClass(), 'parent_id');
     }
 }
