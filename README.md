@@ -204,7 +204,96 @@ $originalSet = DataSet::find(1);
 $duplicatedSet = $originalSet->duplicate();
 ```
 
-### 6. Custom Models
+### 6. JSON Mode
+
+Instead of storing each field as a row in `data_fields`, you can store an entire form's **schema** + **values** as JSON columns on the owner model. Same field types, same casting (including file references via `ssntpl/laravel-files`), same validation — only the storage layout changes. Useful when:
+
+- You want one DB row per submission (log entry, step instance, form response) instead of N rows per field.
+- The schema is defined once on a parent record and reused by many children.
+- You're moving an existing JSON-blob column to a structured shape without dragging in two more tables.
+
+#### 6.1 Add JSON columns to your table
+
+```php
+use Ssntpl\DataFields\Support\JsonModeMigration;
+
+Schema::create('log_entries', function (Blueprint $table) {
+    $table->id();
+    JsonModeMigration::addColumns($table);  // adds data_fields_schema, data_fields_values
+    $table->timestamps();
+});
+```
+
+#### 6.2 Use `HasDataFieldsJson` (flat) or `HasDataSetsJson` (containers)
+
+```php
+use Ssntpl\DataFields\Traits\HasDataSetsJson;
+
+class LogEntry extends Model
+{
+    use HasDataSetsJson;
+}
+```
+
+#### 6.3 Read / write
+
+```php
+$entry->setDataFieldsSchema([
+    ['key' => 'performed_by', 'type' => 'text',  'validations' => ['required']],
+    ['key' => 'verdict',      'type' => 'select_single'],
+]);
+
+$entry->setFieldValue('performed_by', 'Rahul');
+$entry->setFieldValue('verdict', 'ok');
+$entry->save();
+
+$entry->getFieldValue('performed_by');   // "Rahul"
+$entry->dataFields();                    // Collection<FieldValue>
+$entry->validateDataFields();            // throws ValidationException on failure
+```
+
+#### 6.4 Containers (steps / sections / groups)
+
+```php
+$entry->setDataFieldsSchema([
+    [
+        'type'  => 'step', 'key' => 'step_1', 'label' => 'Perform',
+        'items' => [
+            ['key' => 'performed_by', 'type' => 'text'],
+        ],
+    ],
+]);
+
+$entry->setFieldValue('step_1.performed_by', 'Rahul');
+$entry->dataSets();             // Collection<DataSetValue>
+$entry->dataSet('step_1');      // single container
+```
+
+#### 6.5 Override column names
+
+```php
+class LogEntry extends Model
+{
+    use HasDataFieldsJson;
+
+    protected function getDataFieldsSchemaColumn(): ?string { return 'log_format'; }
+    protected function getDataFieldsValuesColumn(): ?string { return 'entries'; }
+}
+```
+
+Return `null` from `getDataFieldsSchemaColumn()` and override `getDataFieldsSchema()` to pull the schema from a parent record instead.
+
+#### 6.6 Notable behaviours
+
+- **`select_single` / `select_multiple` with `options`** automatically get a Laravel `in:...` rule appended at validation time — out-of-options values fail validation without you having to list them again in `validations`.
+- **`getFieldValue($key)` honours the leaf's `default`** when the path isn't set in values. Explicit `null` overrides the default.
+- **`dataField($key)` / `dataSet($key)` match by full dotted path only.** For nested schemas, pass `step_1.phone`, not bare `phone` — otherwise the call returns `null` (no ambiguity).
+- **Lenient `setFieldValue` refuses dotted unknown paths.** Flat unknown keys still pass through under `strict_writes=false`; dotted ones don't (they'd corrupt the shape).
+- **`version` is a reserved top-level key.** Don't name a leaf `version`. A column holding `{"version": "..."}` without the matching payload throws — it's almost always corruption.
+
+For the full canonical schema/values shape, envelope handling, `visible_if` semantics, and strict-write behaviour, see [`docs/JSON_MODE_SPEC.md`](docs/JSON_MODE_SPEC.md).
+
+### 7. Custom Models
 
 You can extend the base models to add custom functionality:
 

@@ -4,10 +4,11 @@ namespace Ssntpl\DataFields\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Ssntpl\DataFields\Casts\FieldValueCast;
+use Ssntpl\DataFields\Contracts\FieldLike;
 use Ssntpl\DataFields\Traits\HasDataFields;
 use Ssntpl\LaravelFiles\Traits\HasFiles;
 
-class DataField extends Model
+class DataField extends Model implements FieldLike
 {
     use HasDataFields;
     use HasFiles;
@@ -66,6 +67,19 @@ class DataField extends Model
     public function owner()
     {
         return $this->morphTo();
+    }
+
+    /**
+     * FieldLike alias for the row-mode `meta_data` column.
+     */
+    public function getMetaAttribute(): array
+    {
+        return $this->meta_data ?? [];
+    }
+
+    public function isVisible(): bool
+    {
+        return true;
     }
 
     public function delete()
