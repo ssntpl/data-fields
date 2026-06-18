@@ -193,13 +193,15 @@ class ValueCaster
         }
 
         $found = $class::find($ref['model_id']);
-        return $found instanceof File ? $found : null;
+        $base  = self::fileBaseClass();
+        return $found instanceof $base ? $found : null;
     }
 
     /**
      * Resolve a stored model_type (morph alias or FQCN) to a class string,
-     * but only return it if the class is a File (or subclass). Anything else
-     * is rejected — we will not autoload arbitrary classes from stored data.
+     * but only return it if the class is a File (or subclass per the
+     * `files.model` config from ssntpl/laravel-files). Anything else is
+     * rejected — we will not autoload arbitrary classes from stored data.
      */
     public static function resolveModelClass(string $stored): ?string
     {
@@ -208,10 +210,24 @@ class ValueCaster
         if (!is_string($class) || $class === '' || !class_exists($class)) {
             return null;
         }
-        if (!is_a($class, File::class, true)) {
+        if (!is_a($class, self::fileBaseClass(), true)) {
             return null;
         }
         return $class;
+    }
+
+    /**
+     * Resolve the base File model class consumers expect. Honours
+     * laravel-files' `config('files.model')` override so a consumer that
+     * subclasses or replaces File can store/resolve their own class.
+     */
+    private static function fileBaseClass(): string
+    {
+        $configured = config('files.model');
+        if (is_string($configured) && class_exists($configured) && is_a($configured, File::class, true)) {
+            return $configured;
+        }
+        return File::class;
     }
 
     /**
@@ -241,7 +257,8 @@ class ValueCaster
 
     private static function oneFileReference(mixed $file): ?array
     {
-        if ($file instanceof File) {
+        $base = self::fileBaseClass();
+        if ($file instanceof $base) {
             return [
                 'model_type' => self::morphTypeFor($file),
                 'model_id'   => $file->getKey(),
@@ -249,7 +266,7 @@ class ValueCaster
         }
         if (is_numeric($file)) {
             return [
-                'model_type' => self::morphTypeFor(File::class),
+                'model_type' => self::morphTypeFor($base),
                 'model_id'   => (int) $file,
             ];
         }

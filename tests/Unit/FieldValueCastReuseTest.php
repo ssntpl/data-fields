@@ -84,4 +84,16 @@ class FieldValueCastReuseTest extends TestCase
         // Should return null (rejected), not autoload self::class.
         $this->assertNull($resolved);
     }
+
+    public function test_file_subclass_is_accepted_by_resolver(): void
+    {
+        // A consumer-defined subclass of File should pass the base-class check.
+        $resolved = ValueCaster::resolveModelClass(SubclassedFile::class);
+        $this->assertSame(SubclassedFile::class, $resolved);
+    }
+}
+
+class SubclassedFile extends File
+{
+    // Empty subclass — exists only to prove the base-class check accepts it.
 }

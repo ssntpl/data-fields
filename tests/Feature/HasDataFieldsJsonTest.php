@@ -305,6 +305,67 @@ class HasDataFieldsJsonTest extends TestCase
         $owner->getDataFieldsSchema();
     }
 
+    public function test_schema_and_values_are_memoised_between_reads(): void
+    {
+        $owner = new JsonOwner(['name' => 'Cached']);
+        $owner->setDataFieldsSchema([['key' => 'phone', 'type' => DataField::TEXT]]);
+        $owner->setDataFieldsValues(['phone' => '999']);
+
+        $schema1 = $owner->getDataFieldsSchema();
+        $schema2 = $owner->getDataFieldsSchema();
+        $values1 = $owner->getDataFieldsValues();
+        $values2 = $owner->getDataFieldsValues();
+
+        // Same instance returned both times — memoised.
+        $this->assertSame($schema1, $schema2);
+        $this->assertSame($values1, $values2);
+    }
+
+    public function test_setter_invalidates_the_cache(): void
+    {
+        $owner = new JsonOwner();
+        $owner->setDataFieldsSchema([['key' => 'a', 'type' => DataField::TEXT]]);
+        $first = $owner->getDataFieldsSchema();
+
+        $owner->setDataFieldsSchema([['key' => 'b', 'type' => DataField::TEXT]]);
+        $second = $owner->getDataFieldsSchema();
+
+        $this->assertNotSame($first, $second);
+        $this->assertSame('b', $second[0]['key']);
+    }
+
+    public function test_clear_cache_forces_rebuild_after_raw_attribute_write(): void
+    {
+        $owner = new JsonOwner();
+        $owner->setDataFieldsSchema([['key' => 'a', 'type' => DataField::TEXT]]);
+        $first = $owner->getDataFieldsSchema();
+        $this->assertCount(1, $first);
+
+        // Simulate a raw write — bypass setDataFieldsSchema() entirely.
+        $owner->data_fields_schema = ['version' => '1.0', 'schema' => [
+            ['key' => 'a', 'type' => DataField::TEXT],
+            ['key' => 'b', 'type' => DataField::TEXT],
+        ]];
+
+        // Without cache clear, returns the stale memoised result.
+        $this->assertCount(1, $owner->getDataFieldsSchema());
+
+        $owner->clearDataFieldsCache();
+        $this->assertCount(2, $owner->getDataFieldsSchema());
+    }
+
+    public function test_validate_schema_throws_on_malformed_input(): void
+    {
+        $owner = new JsonOwner();
+        $owner->setDataFieldsSchema([
+            ['key' => 'dup', 'type' => DataField::TEXT],
+            ['key' => 'dup', 'type' => DataField::TEXT],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $owner->validateDataFieldsSchema();
+    }
+
     public function test_bool_truthy_match_is_case_insensitive(): void
     {
         $owner = new JsonOwner();

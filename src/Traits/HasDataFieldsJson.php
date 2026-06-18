@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Ssntpl\DataFields\Models\DataField;
 use Ssntpl\DataFields\Support\FieldValue;
+use Ssntpl\DataFields\Support\SchemaValidator;
 use Ssntpl\DataFields\Support\ValueCaster;
 
 /**
@@ -36,6 +37,15 @@ use Ssntpl\DataFields\Support\ValueCaster;
  */
 trait HasDataFieldsJson
 {
+    /**
+     * Per-instance memoisation of unwrapped schema/values. Reads are O(1)
+     * after the first call. Setters invalidate. Consumers who mutate the
+     * underlying column attribute by hand (raw $model->attributes writes,
+     * $model->refresh()) should call clearDataFieldsCache() to drop the cache.
+     */
+    private ?array $cachedDataFieldsSchema = null;
+    private ?array $cachedDataFieldsValues = null;
+
     protected function getDataFieldsSchemaColumn(): ?string
     {
         return 'data_fields_schema';
@@ -44,6 +54,13 @@ trait HasDataFieldsJson
     protected function getDataFieldsValuesColumn(): ?string
     {
         return 'data_fields_values';
+    }
+
+    public function clearDataFieldsCache(): static
+    {
+        $this->cachedDataFieldsSchema = null;
+        $this->cachedDataFieldsValues = null;
+        return $this;
     }
 
     /**
@@ -70,11 +87,14 @@ trait HasDataFieldsJson
 
     public function getDataFieldsSchema(): array
     {
+        if ($this->cachedDataFieldsSchema !== null) {
+            return $this->cachedDataFieldsSchema;
+        }
         $col = $this->getDataFieldsSchemaColumn();
         if ($col === null) {
             return [];
         }
-        return $this->unwrapEnvelope($this->{$col} ?? [], 'schema');
+        return $this->cachedDataFieldsSchema = $this->unwrapEnvelope($this->{$col} ?? [], 'schema');
     }
 
     public function setDataFieldsSchema(array $schema): static
@@ -86,6 +106,7 @@ trait HasDataFieldsJson
             );
         }
         $this->{$col} = $this->wrapEnvelope($schema, 'schema');
+        $this->cachedDataFieldsSchema = null;
         return $this;
     }
 
@@ -95,11 +116,14 @@ trait HasDataFieldsJson
 
     public function getDataFieldsValues(): array
     {
+        if ($this->cachedDataFieldsValues !== null) {
+            return $this->cachedDataFieldsValues;
+        }
         $col = $this->getDataFieldsValuesColumn();
         if ($col === null) {
             return [];
         }
-        return $this->unwrapEnvelope($this->{$col} ?? [], 'values');
+        return $this->cachedDataFieldsValues = $this->unwrapEnvelope($this->{$col} ?? [], 'values');
     }
 
     public function setDataFieldsValues(array $values): static
@@ -114,6 +138,7 @@ trait HasDataFieldsJson
             $values = $this->dropUnknownKeys($values, $this->getDataFieldsSchema());
         }
         $this->{$col} = $this->wrapEnvelope($values, 'values');
+        $this->cachedDataFieldsValues = null;
         return $this;
     }
 
@@ -187,6 +212,17 @@ trait HasDataFieldsJson
     public function dataField(string $key): ?FieldValue
     {
         return $this->dataFields()->first(fn (FieldValue $f) => $f->path === $key);
+    }
+
+    /**
+     * Assert the current schema is well-formed. Throws InvalidArgumentException
+     * with a descriptive `path: reason` message on the first issue found.
+     * Cheap to call (no DB access); useful in tests, in artisan validate
+     * commands, or just before persisting a schema you've built by hand.
+     */
+    public function validateDataFieldsSchema(): void
+    {
+        SchemaValidator::validate($this->getDataFieldsSchema());
     }
 
     // -----------------------------------------------------------------
