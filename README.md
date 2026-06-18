@@ -50,10 +50,13 @@ The package publishes a configuration file to `config/data-fields.php`:
 ```php
 <?php
 return [
-    'data_set_model' => \Ssntpl\DataFields\Models\DataSet::class,
+    'data_set_model'   => \Ssntpl\DataFields\Models\DataSet::class,
     'data_field_model' => \Ssntpl\DataFields\Models\DataField::class,
-    'data_sets_timestamps' => false,
+
+    // Enable `created_at` / `updated_at` on the package tables. Off by default
+    // because most consumers don't need per-row timestamps for derived data.
     'data_fields_timestamps' => false,
+    'data_sets_timestamps'   => false,
 ];
 ```
 
@@ -124,7 +127,7 @@ $phoneNumber = $phoneField->value;
 $product = Product::find(1);
 
 // Create a data set
-$specifications = $product->data_sets()->create([
+$specifications = $product->dataSets()->create([
     'name' => 'Product Specifications',
     'type' => 'specifications',
     'sort_order' => 1
@@ -149,10 +152,10 @@ $specifications->fields()->create([
 #### Retrieve Data Sets
 ```php
 // Get all data sets
-$dataSets = $product->data_sets;
+$dataSets = $product->dataSets;
 
 // Get specific data set by type
-$specs = $product->data_sets()->where('type', 'specifications')->first();
+$specs = $product->dataSets()->where('type', 'specifications')->first();
 
 // Get fields within a data set
 $specFields = $specs->fields;
@@ -209,9 +212,13 @@ You can extend the base models to add custom functionality:
 // Custom DataField model
 class CustomDataField extends \Ssntpl\DataFields\Models\DataField
 {
-    protected $fillable = ['custom_attribute'];
-    
-    // Add custom methods
+    protected $extraFillable = ['custom_attribute'];
+
+    public function getFillable()
+    {
+        return array_merge(parent::getFillable(), $this->extraFillable ?? []);
+    }
+
     public function getFormattedValue()
     {
         return strtoupper($this->value);
@@ -222,7 +229,7 @@ class CustomDataField extends \Ssntpl\DataFields\Models\DataField
 class CustomDataSet extends \Ssntpl\DataFields\Models\DataSet
 {
     protected $extraFillable = ['custom_field'];
-    
+
     public function getFillable()
     {
         return array_merge(parent::getFillable(), $this->extraFillable ?? []);
@@ -269,7 +276,8 @@ return [
 - `fields()` - Morphed relationship to data fields
 
 ### HasDataSets Trait
-- `data_sets()` - Morphed relationship to data sets
+- `dataSets()` - Morphed relationship to data sets (canonical)
+- `data_sets()` - **Deprecated** snake_case alias, kept for backward compatibility. New code should use `dataSets()`.
 - Includes `HasDataFields` trait
 
 ### DataField Model
@@ -285,8 +293,13 @@ return [
 
 ## Requirements
 
-- PHP 7.4+
-- Laravel 8.0+
+- PHP 8.2+
+- Laravel 11.0+ or 12.0+
+- `ssntpl/laravel-files` ^0.1 (required — used by the `file` / `files` field types)
+
+## Security
+
+The `file` / `files` field types store a reference to a row in `ssntpl/laravel-files`'s `files` table as `{model_type, model_id}` JSON. On read, the cast resolves `model_type` through Laravel's morph map (`Illuminate\Database\Eloquent\Relations\Relation::morphMap()`) and rejects any class that is not `Ssntpl\LaravelFiles\Models\File` or a subclass — so a tampered value cannot autoload arbitrary classes. If you have subclassed the File model, ensure your subclass extends `Ssntpl\LaravelFiles\Models\File`.
 
 ## Support
 

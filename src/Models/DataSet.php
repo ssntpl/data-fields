@@ -9,15 +9,9 @@ class DataSet extends Model
 {
     use HasDataFields;
 
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
     public $timestamps = false;
 
     protected $fillable = [
-        'id',
         'owner_id',
         'owner_type',
         'name',
@@ -25,11 +19,11 @@ class DataSet extends Model
         'sort_order',
         'meta_data',
     ];
-    
+
     protected $casts = [
         'meta_data' => 'array',
     ];
-    
+
     public function owner()
     {
         return $this->morphTo();
@@ -37,15 +31,16 @@ class DataSet extends Model
 
     public function delete()
     {
-        $dataFields = $this->fields()->get();
-        foreach($dataFields as $dataField)
-        {
+        foreach ($this->fields()->get() as $dataField) {
             $dataField->delete();
-            // DataField::destroy($dataField->id);
         }
         return parent::delete();
     }
 
+    /**
+     * Duplicate this set. Its DataFields are reparented to the new copy via a
+     * single INSERT each — no double-save.
+     */
     public function duplicate()
     {
         $newDataSet = $this->replicate();
@@ -53,9 +48,8 @@ class DataSet extends Model
         $newDataSet->owner_type = '';
         $newDataSet->save();
 
-        foreach($this->fields as $dataField)
-        {
-            $newDataSet->fields()->save($dataField->duplicate());
+        foreach ($this->fields as $dataField) {
+            $dataField->duplicateInto($newDataSet);
         }
 
         return $newDataSet;

@@ -11,7 +11,7 @@ class DataField extends Model
 {
     use HasDataFields;
     use HasFiles;
-    
+
     public const BOOL = 'bool';
     public const TEXT = 'text';
     public const NUMBER = 'number';
@@ -25,13 +25,8 @@ class DataField extends Model
     public const JSON = 'json';
     public const ARRAY = 'array';
 
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-    */
     public $timestamps = false;
-    
+
     protected $fillable = [
         'owner_id',
         'owner_type',
@@ -75,29 +70,42 @@ class DataField extends Model
 
     public function delete()
     {
-        $dataFieldFiles = $this->files()->get();
-        foreach($dataFieldFiles as $file) {
+        foreach ($this->files()->get() as $file) {
             $file->delete();
         }
-        $dataFields = $this->fields()->get();
-        foreach($dataFields as $dataField)
-        {
-            $dataField->delete();
+        foreach ($this->fields()->get() as $child) {
+            $child->delete();
         }
         return parent::delete();
     }
 
+    /**
+     * Duplicate this field. Children (sub-fields) are reparented to the new
+     * copy via a single INSERT each — no double-save.
+     */
     public function duplicate()
     {
-        $newDataSet = $this->replicate();
-        $newDataSet->owner_id = 0;
-        $newDataSet->owner_type = '';
-        $newDataSet->save();
+        $newDataField = $this->replicate();
+        $newDataField->owner_id = 0;
+        $newDataField->owner_type = '';
+        $newDataField->save();
 
-        foreach ($this->fields as $dataField) {
-            $newDataSet->fields()->save($dataField->duplicate());
+        foreach ($this->fields as $child) {
+            $child->duplicateInto($newDataField);
         }
 
-        return $newDataSet;
+        return $newDataField;
+    }
+
+    public function duplicateInto(Model $owner): self
+    {
+        $copy = $this->replicate();
+        $owner->fields()->save($copy);
+
+        foreach ($this->fields as $child) {
+            $child->duplicateInto($copy);
+        }
+
+        return $copy;
     }
 }
