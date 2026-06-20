@@ -132,11 +132,12 @@ class RowModeTest extends TestCase
         $this->assertSame(0, DataRow::count());
     }
 
-    public function test_data_row_duplicate_clones_with_children_reparented(): void
+    public function test_duplicate_into_clones_row_with_children_reparented_to_new_owner(): void
     {
-        $owner = TestOwner::create(['name' => 'P']);
+        $source = TestOwner::create(['name' => 'Source']);
+        $target = TestOwner::create(['name' => 'Target']);
 
-        $parent = $owner->fields()->create([
+        $parent = $source->fields()->create([
             'key'   => 'parent',
             'type'  => FieldType::Text->value,
             'value' => 'p',
@@ -144,13 +145,16 @@ class RowModeTest extends TestCase
         $parent->fields()->create(['key' => 'c1', 'type' => FieldType::Text->value, 'value' => '1']);
         $parent->fields()->create(['key' => 'c2', 'type' => FieldType::Text->value, 'value' => '2']);
 
-        $copy = $parent->duplicate();
+        $copy = $parent->duplicateInto($target);
 
         $this->assertNotSame($parent->id, $copy->id);
-        $this->assertSame(0, (int) $copy->owner_id);
-        $this->assertSame('', $copy->owner_type);
+        $this->assertSame($target->id, (int) $copy->owner_id);
         $this->assertCount(2, $copy->fields()->get());
         $this->assertCount(2, $parent->fields()->get());
+
+        // Source still owns the original parent only; target owns the new copy only.
+        $this->assertSame([$parent->id], $source->fields()->pluck('id')->all());
+        $this->assertSame([$copy->id], $target->fields()->pluck('id')->all());
 
         $childKeys = $copy->fields()->orderBy('key')->pluck('key')->all();
         $this->assertSame(['c1', 'c2'], $childKeys);

@@ -600,6 +600,13 @@ both literal strings and as cases on the `FieldType` PHP enum.
 | `json` | JSON | decoded `array` |
 | `array` | JSON list | `array` |
 
+**Lenient string decoding on read** — for `json`, `array`, and
+`select_multiple`, the read path will `json_decode` a stored string if it
+encounters one (recovery path for double-encoded or migrated legacy data).
+If you want to store an opaque string verbatim, use the `text` type
+instead; `json` is for structured data and writes always store the native
+PHP structure.
+
 ### Containers (cast mode only)
 
 | Type | Notes |

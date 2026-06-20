@@ -66,23 +66,12 @@ class DataRow extends Model
     }
 
     /**
-     * Duplicate this row. Children (sub-rows via self-polymorphism) are
-     * reparented to the new copy via a single INSERT each — no double-save.
+     * Clone this row onto a new owner, recursively re-parenting any
+     * children (sub-rows via self-polymorphism). One INSERT per copy.
+     *
+     * If you want an in-memory copy without persisting, use Laravel's
+     * built-in `replicate()` directly and save when you're ready.
      */
-    public function duplicate()
-    {
-        $copy = $this->replicate();
-        $copy->owner_id   = 0;
-        $copy->owner_type = '';
-        $copy->save();
-
-        foreach ($this->fields as $child) {
-            $child->duplicateInto($copy);
-        }
-
-        return $copy;
-    }
-
     public function duplicateInto(Model $owner): self
     {
         $copy = $this->replicate();

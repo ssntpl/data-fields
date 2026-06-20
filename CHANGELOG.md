@@ -5,7 +5,27 @@ All notable changes to `ssntpl/data-fields` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the package adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] — 0.4.0
+## [Unreleased]
+
+## [0.4.1] — 2026-06-20
+
+### Removed (breaking)
+
+- `DataRow::duplicate()` — the previous behaviour persisted an orphan row
+  with `owner_id = 0` and `owner_type = ''`, which was junk-shaped state
+  (a saved row that didn't belong to any real owner). Use
+  `DataRow::duplicateInto($owner)` to clone onto a real owner, or
+  Laravel's built-in `$row->replicate()` if you want an unsaved in-memory
+  copy.
+
+### Documentation
+
+- README field-types table now calls out the lenient string-decode path
+  for `json` / `array` / `select_multiple` reads. If a stored value
+  happens to be a JSON-encoded string (double-encoded / migrated legacy
+  data), the read decodes it. Use `text` for opaque strings.
+
+## [0.4.0] — 2026-06-20
 
 A ground-up rework of the JSON-mode storage. All 0.3.x development rolls into
 this release. Pre-release package — no compatibility shim is provided.
