@@ -46,31 +46,7 @@ abstract class TestCase extends Orchestra
         Schema::create('test_owners', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable();
-        });
-
-        Schema::create('test_json_owners', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable();
-            \Ssntpl\DataFields\Support\JsonModeMigration::addColumns($table);
-        });
-
-        Schema::create('test_mixed_owners', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable();
-            \Ssntpl\DataFields\Support\JsonModeMigration::addColumns($table);
-        });
-
-        Schema::create('test_log_entries', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable();
-            $table->json('log_format')->nullable();
-            $table->json('entries')->nullable();
-        });
-
-        Schema::create('test_child_entries', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable();
-            $table->json('entries')->nullable();
+            $table->json('user_settings')->nullable();   // for cast tests
         });
     }
 }

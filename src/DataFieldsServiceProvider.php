@@ -23,13 +23,22 @@ class DataFieldsServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->publishes([
-            __DIR__ . "/../config/data-fields.php" => config_path("data-fields.php"),
-        ], 'data-fields-config');
+        // Consumers who set `data-fields.auto_load_migrations` to true skip
+        // the publish step entirely — useful for small apps that don't need
+        // to customise migration timestamps. Default is false to preserve
+        // 0.2.x behaviour.
+        if (config('data-fields.auto_load_migrations', false)) {
+            $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        }
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_data_fields_table.php' => database_path('migrations/2025_01_01_000001_create_data_fields_table.php'),
-            __DIR__.'/../database/migrations/create_data_sets_table.php' => database_path('migrations/2025_01_01_000002_create_data_sets_table.php'),
-        ], 'data-fields-migrations');
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__ . "/../config/data-fields.php" => config_path("data-fields.php"),
+            ], 'data-fields-config');
+
+            $this->publishes([
+                __DIR__.'/../database/migrations/create_data_fields_table.php' => database_path('migrations/2025_01_01_000001_create_data_fields_table.php'),
+            ], 'data-fields-migrations');
+        }
     }
 }

@@ -5,19 +5,20 @@ namespace Ssntpl\DataFields\Support;
 use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Ssntpl\DataFields\Models\DataField;
 use Ssntpl\LaravelFiles\Models\File;
 
 /**
  * Single source of truth for value casting across row-mode and JSON-mode storage.
  *
- * Row mode (FieldValueCast): values live in a TEXT column. The cast must
+ * Row mode (RowValueCast): values live in a TEXT column. The cast must
  * round-trip strings ↔ PHP types and JSON-encode the structured types
  * (json/array/select_multiple/file/files).
  *
- * JSON mode (HasDataFieldsJson): values live inside a larger JSON document
+ * JSON mode (DataField cast): values live inside a larger JSON document
  * that the surrounding column cast has already decoded into a native PHP
  * structure. The cast only needs to normalise types — no inner JSON encoding.
+ *
+ * Type discriminator is `FieldType` (or a raw type string, coerced).
  *
  * Bool handling:
  *  - Row mode stores '1' / '0' as canonical strings (portable across SQLite,
@@ -37,20 +38,21 @@ class ValueCaster
     /**
      * Cast a raw row-mode string from the DB column to a PHP value.
      */
-    public static function castForRead(string $type, ?string $raw): mixed
+    public static function castForRead(FieldType|string $type, ?string $raw): mixed
     {
         if (is_null($raw)) {
             return null;
         }
 
-        return match ($type) {
-            DataField::NUMBER                                            => (float) $raw,
-            DataField::BOOL                                              => self::toBool($raw),
-            DataField::SELECT_MULTIPLE, DataField::ARRAY, DataField::JSON => json_decode($raw, true),
-            DataField::FILE, DataField::FILES                            => self::resolveFiles(json_decode($raw, true)),
-            DataField::DATE                                              => self::tryParse($raw, fn (Carbon $c) => $c->toDateString()),
-            DataField::TIME                                              => self::tryParse($raw, fn (Carbon $c) => $c->toTimeString()),
-            DataField::DATETIME                                          => self::tryParse($raw, fn (Carbon $c) => $c),
+        return match (FieldType::coerce($type)) {
+            FieldType::Number                                            => (float) $raw,
+            FieldType::Bool                                              => self::toBool($raw),
+            FieldType::SelectMultiple, FieldType::Array_, FieldType::Json => json_decode($raw, true),
+            FieldType::File                                              => self::resolveFiles(json_decode($raw, true), multi: false),
+            FieldType::Files                                             => self::resolveFiles(json_decode($raw, true), multi: true),
+            FieldType::Date                                              => self::tryParse($raw, fn (Carbon $c) => $c->toDateString()),
+            FieldType::Time                                              => self::tryParse($raw, fn (Carbon $c) => $c->toTimeString()),
+            FieldType::DateTime                                          => self::tryParse($raw, fn (Carbon $c) => $c),
             default                                                      => (string) $raw,
         };
     }
@@ -58,19 +60,20 @@ class ValueCaster
     /**
      * Cast a PHP value to the raw string stored in a row-mode DB column.
      */
-    public static function castForWrite(string $type, mixed $value): mixed
+    public static function castForWrite(FieldType|string $type, mixed $value): mixed
     {
         if (is_null($value)) {
             return null;
         }
 
-        return match ($type) {
-            DataField::SELECT_MULTIPLE, DataField::ARRAY, DataField::JSON => json_encode($value),
-            DataField::BOOL                                              => self::toBool($value) ? '1' : '0',
-            DataField::FILE, DataField::FILES                            => self::encodeFiles($value, asJsonString: true),
-            DataField::DATE                                              => Carbon::parse($value)->toDateString(),
-            DataField::TIME                                              => Carbon::parse($value)->toTimeString(),
-            DataField::DATETIME                                          => Carbon::parse($value)->toDateTimeString(),
+        return match (FieldType::coerce($type)) {
+            FieldType::SelectMultiple, FieldType::Array_, FieldType::Json => json_encode($value),
+            FieldType::Bool                                              => self::toBool($value) ? '1' : '0',
+            FieldType::File                                              => self::encodeFiles($value, asJsonString: true, multi: false),
+            FieldType::Files                                             => self::encodeFiles($value, asJsonString: true, multi: true),
+            FieldType::Date                                              => Carbon::parse($value)->toDateString(),
+            FieldType::Time                                              => Carbon::parse($value)->toTimeString(),
+            FieldType::DateTime                                          => Carbon::parse($value)->toDateTimeString(),
             default                                                      => (string) $value,
         };
     }
@@ -79,20 +82,21 @@ class ValueCaster
      * Cast a JSON-mode value (already JSON-decoded by the surrounding column
      * cast) to its PHP form. Structured types pass through without re-decoding.
      */
-    public static function castNativeRead(string $type, mixed $value): mixed
+    public static function castNativeRead(FieldType|string $type, mixed $value): mixed
     {
         if (is_null($value)) {
             return null;
         }
 
-        return match ($type) {
-            DataField::NUMBER                                            => (float) $value,
-            DataField::BOOL                                              => self::toBool($value),
-            DataField::SELECT_MULTIPLE, DataField::ARRAY, DataField::JSON => is_string($value) ? json_decode($value, true) : $value,
-            DataField::FILE, DataField::FILES                            => self::resolveFiles(is_string($value) ? json_decode($value, true) : $value),
-            DataField::DATE                                              => self::tryParse($value, fn (Carbon $c) => $c->toDateString()),
-            DataField::TIME                                              => self::tryParse($value, fn (Carbon $c) => $c->toTimeString()),
-            DataField::DATETIME                                          => self::tryParse($value, fn (Carbon $c) => $c),
+        return match (FieldType::coerce($type)) {
+            FieldType::Number                                            => (float) $value,
+            FieldType::Bool                                              => self::toBool($value),
+            FieldType::SelectMultiple, FieldType::Array_, FieldType::Json => is_string($value) ? json_decode($value, true) : $value,
+            FieldType::File                                              => self::resolveFiles(is_string($value) ? json_decode($value, true) : $value, multi: false),
+            FieldType::Files                                             => self::resolveFiles(is_string($value) ? json_decode($value, true) : $value, multi: true),
+            FieldType::Date                                              => self::tryParse($value, fn (Carbon $c) => $c->toDateString()),
+            FieldType::Time                                              => self::tryParse($value, fn (Carbon $c) => $c->toTimeString()),
+            FieldType::DateTime                                          => self::tryParse($value, fn (Carbon $c) => $c),
             default                                                      => (string) $value,
         };
     }
@@ -101,19 +105,20 @@ class ValueCaster
      * Cast a PHP value to its JSON-mode native form (to be embedded directly
      * in the larger JSON document — no inner string encoding).
      */
-    public static function castNativeWrite(string $type, mixed $value): mixed
+    public static function castNativeWrite(FieldType|string $type, mixed $value): mixed
     {
         if (is_null($value)) {
             return null;
         }
 
-        return match ($type) {
-            DataField::SELECT_MULTIPLE, DataField::ARRAY, DataField::JSON => $value,
-            DataField::BOOL                                              => self::toBool($value),
-            DataField::FILE, DataField::FILES                            => self::encodeFiles($value, asJsonString: false),
-            DataField::DATE                                              => Carbon::parse($value)->toDateString(),
-            DataField::TIME                                              => Carbon::parse($value)->toTimeString(),
-            DataField::DATETIME                                          => Carbon::parse($value)->toDateTimeString(),
+        return match (FieldType::coerce($type)) {
+            FieldType::SelectMultiple, FieldType::Array_, FieldType::Json => $value,
+            FieldType::Bool                                              => self::toBool($value),
+            FieldType::File                                              => self::encodeFiles($value, asJsonString: false, multi: false),
+            FieldType::Files                                             => self::encodeFiles($value, asJsonString: false, multi: true),
+            FieldType::Date                                              => Carbon::parse($value)->toDateString(),
+            FieldType::Time                                              => Carbon::parse($value)->toTimeString(),
+            FieldType::DateTime                                          => Carbon::parse($value)->toDateTimeString(),
             default                                                      => (string) $value,
         };
     }
@@ -155,30 +160,27 @@ class ValueCaster
     }
 
     /**
-     * Decode an already-decoded array of file references into File models.
-     * `$decoded` is either a single ref `{model_type, model_id}`, an array of
-     * refs, or null/garbage (in which case we return the input unchanged).
+     * Decode an already-decoded file reference into File model(s). The declared
+     * field type (single vs multi) drives the shape — never the structure of
+     * `$decoded` — so a single ref stored under FILES still hydrates as a list.
+     *
+     * - $multi=true  → always returns a list (empty list preserved).
+     * - $multi=false → returns a single File or null.
      */
-    private static function resolveFiles(mixed $decoded): mixed
+    private static function resolveFiles(mixed $decoded, bool $multi): mixed
     {
-        if (!is_array($decoded)) {
-            return $decoded;
-        }
-
-        try {
-            // Multi-file: numerically indexed array of refs.
-            if (isset($decoded[0]) && is_array($decoded[0])) {
-                return collect($decoded)
-                    ->map(fn ($item) => self::resolveOneFile($item))
-                    ->filter()
-                    ->values()
-                    ->all();
+        if ($multi) {
+            if (!is_array($decoded)) {
+                return [];
             }
-
-            return self::resolveOneFile($decoded);
-        } catch (\Throwable $e) {
-            return $decoded;
+            return collect($decoded)
+                ->map(fn ($item) => is_array($item) ? self::resolveOneFile($item) : null)
+                ->filter()
+                ->values()
+                ->all();
         }
+
+        return is_array($decoded) ? self::resolveOneFile($decoded) : null;
     }
 
     private static function resolveOneFile(array $ref): ?File
@@ -232,21 +234,24 @@ class ValueCaster
 
     /**
      * Convert a file/files PHP value to either a JSON string (row mode) or a
-     * native PHP array (JSON mode).
+     * native PHP array (JSON mode). The declared field type (single vs multi)
+     * drives the shape so a single File passed to a FILES field still persists
+     * as a list.
      */
-    private static function encodeFiles(mixed $value, bool $asJsonString): mixed
+    private static function encodeFiles(mixed $value, bool $asJsonString, bool $multi): mixed
     {
-        $ref = self::toFileReference($value);
+        $ref = self::toFileReference($value, $multi);
         if ($ref === null) {
             return $asJsonString ? (string) $value : $value;
         }
         return $asJsonString ? json_encode($ref) : $ref;
     }
 
-    private static function toFileReference(mixed $value): mixed
+    private static function toFileReference(mixed $value, bool $multi): mixed
     {
-        if (is_array($value)) {
-            return collect($value)
+        if ($multi) {
+            $list = is_array($value) ? $value : [$value];
+            return collect($list)
                 ->map(fn ($file) => self::oneFileReference($file))
                 ->filter()
                 ->values()

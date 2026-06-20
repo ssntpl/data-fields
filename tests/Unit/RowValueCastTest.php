@@ -2,14 +2,14 @@
 
 namespace Ssntpl\DataFields\Tests\Unit;
 
-use Ssntpl\DataFields\Models\DataField;
+use Ssntpl\DataFields\Models\DataRow;
+use Ssntpl\DataFields\Support\FieldType;
 use Ssntpl\DataFields\Support\ValueCaster;
-use Ssntpl\DataFields\Tests\Models\JsonOwner;
 use Ssntpl\DataFields\Tests\Models\TestOwner;
 use Ssntpl\DataFields\Tests\TestCase;
 use Ssntpl\LaravelFiles\Models\File;
 
-class FieldValueCastReuseTest extends TestCase
+class RowValueCastTest extends TestCase
 {
     private function makeFile(): File
     {
@@ -30,54 +30,39 @@ class FieldValueCastReuseTest extends TestCase
 
         $field = $owner->fields()->create([
             'key'   => 'doc',
-            'type'  => DataField::FILE,
+            'type'  => FieldType::File->value,
             'value' => $file,
         ]);
 
-        $loaded = DataField::find($field->id);
+        $loaded = DataRow::find($field->id);
         $this->assertInstanceOf(File::class, $loaded->value);
         $this->assertSame($file->id, $loaded->value->id);
     }
 
-    public function test_file_field_in_json_mode_resolves_to_File_instance(): void
-    {
-        $file = $this->makeFile();
-
-        $owner = new JsonOwner();
-        $owner->setDataFieldsSchema([
-            ['key' => 'doc', 'type' => DataField::FILE],
-        ]);
-        $owner->setFieldValue('doc', $file);
-        $owner->save();
-
-        $resolved = JsonOwner::find($owner->id)->getFieldValue('doc');
-        $this->assertInstanceOf(File::class, $resolved);
-        $this->assertSame($file->id, $resolved->id);
-    }
-
-    public function test_files_field_in_json_mode_resolves_to_File_collection(): void
+    public function test_files_field_in_row_mode_resolves_to_File_collection(): void
     {
         $f1 = $this->makeFile();
         $f2 = $this->makeFile();
+        $owner = TestOwner::create(['name' => 'RowFiles']);
 
-        $owner = new JsonOwner();
-        $owner->setDataFieldsSchema([
-            ['key' => 'docs', 'type' => DataField::FILES],
+        $field = $owner->fields()->create([
+            'key'   => 'docs',
+            'type'  => FieldType::Files->value,
+            'value' => [$f1, $f2],
         ]);
-        $owner->setFieldValue('docs', [$f1, $f2]);
-        $owner->save();
 
-        $resolved = JsonOwner::find($owner->id)->getFieldValue('docs');
-        $this->assertCount(2, $resolved);
-        $this->assertContainsOnlyInstancesOf(File::class, $resolved);
-        $this->assertSame([$f1->id, $f2->id], array_map(fn ($f) => $f->id, $resolved));
+        $loaded = DataRow::find($field->id);
+        $this->assertIsArray($loaded->value);
+        $this->assertCount(2, $loaded->value);
+        $this->assertContainsOnlyInstancesOf(File::class, $loaded->value);
+        $this->assertSame([$f1->id, $f2->id], array_map(fn ($f) => $f->id, $loaded->value));
     }
 
     public function test_value_caster_rejects_non_file_classes(): void
     {
         // Pretend a malicious value was stored with a non-file class string.
         $resolved = ValueCaster::castForRead(
-            DataField::FILE,
+            FieldType::File,
             json_encode(['model_type' => self::class, 'model_id' => 1])
         );
 

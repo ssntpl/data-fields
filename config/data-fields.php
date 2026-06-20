@@ -1,26 +1,18 @@
 <?php
 // config for Ssntpl/DataFields
 return [
-    'data_set_model'   => \Ssntpl\DataFields\Models\DataSet::class,
-    'data_field_model' => \Ssntpl\DataFields\Models\DataField::class,
+    // Row-mode Eloquent model. Subclass DataRow if you want extra fillables
+    // or behaviour and point this key at your subclass.
+    'data_row_model' => \Ssntpl\DataFields\Models\DataRow::class,
 
+    // Enable `created_at` / `updated_at` on the `data_fields` table. Off by
+    // default because most consumers don't need per-row timestamps for
+    // derived data.
     'data_fields_timestamps' => false,
-    'data_sets_timestamps'   => false,
 
-    'json' => [
-        // Default column names for HasDataFieldsJson when the consuming model
-        // does not override $dataFieldsSchemaColumn / $dataFieldsValuesColumn.
-        'default_schema_column' => 'data_fields_schema',
-        'default_values_column' => 'data_fields_values',
-
-        // Wrap-on-write envelope. Reading is always envelope-tolerant
-        // (auto-detected by presence of `version` + `schema`/`values`).
-        'envelope_version' => '1.0',
-        'write_envelope'   => true,
-
-        // When true, setDataFieldsValues() drops keys not present in the
-        // schema. Default lenient — preserves unknown keys (useful during
-        // schema-evolution migrations).
-        'strict_writes' => false,
-    ],
+    // When true, the service provider registers the package's migrations
+    // directly so consumers don't need to `vendor:publish` them. Leave
+    // false if you want to publish + customise the migration timestamps
+    // yourself.
+    'auto_load_migrations' => false,
 ];

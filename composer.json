@@ -1,55 +1,48 @@
 {
-    "name": "ssntpl/data-fields",
-    "description": "Laravel Data Fields.",
-    "type": "library",
-    "keywords": [
-        "laravel",
-        "ssntpl",
-        "data-fields",
-        "data",
-        "fields"
-    ],
-    "homepage": "https://github.com/ssntpl/data-fields",
-    "support": {
-        "issues": "https://github.com/ssntpl/data-fields/issues",
-        "source": "https://github.com/ssntpl/data-fields"
-    },
-    "autoload": {
-        "psr-4": {
-            "Ssntpl\\DataFields\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Ssntpl\\DataFields\\Tests\\": "tests/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Ssntpl\\DataFields\\DataFieldsServiceProvider"
-            ]
-        }
-    },
-    "authors": [
-        {
-            "name": "Abhishek Sharma",
-            "email": "abhishek.sharma@ssntpl.in",
-            "homepage": "https://ssntpl.com"
-        }
-    ],
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "require": {
-        "php": "^8.2",
-        "laravel/framework": "^11.0|^12.0",
-        "ssntpl/laravel-files": "^0.1"
-    },
-    "require-dev": {
-        "orchestra/testbench": "^9.0|^10.0",
-        "phpunit/phpunit": "^11.0"
-    },
-    "scripts": {
-        "test": "vendor/bin/phpunit"
+  "name": "ssntpl/data-fields",
+  "description": "Laravel Data Fields.",
+  "type": "library",
+  "keywords": [
+    "laravel",
+    "ssntpl",
+    "data-fields",
+    "EAV",
+    "key-value"
+  ],
+  "homepage": "https://github.com/ssntpl/data-fields",
+  "support": {
+    "issues": "https://github.com/ssntpl/data-fields/issues",
+    "source": "https://github.com/ssntpl/data-fields"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ssntpl\\DataFields\\": "src/"
     }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ssntpl\\DataFields\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Ssntpl\\DataFields\\DataFieldsServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^11.0|^12.0",
+    "ssntpl/laravel-files": "^0.1"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^9.0|^10.0",
+    "phpunit/phpunit": "^11.0"
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit"
+  }
 }
