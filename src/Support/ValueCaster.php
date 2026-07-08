@@ -169,18 +169,37 @@ class ValueCaster
      */
     private static function resolveFiles(mixed $decoded, bool $multi): mixed
     {
+        $base = self::fileBaseClass();
+
         if ($multi) {
+            // A single File passed to a FILES field hydrates as a one-item list.
+            if ($decoded instanceof $base) {
+                return [$decoded];
+            }
+
             if (!is_array($decoded)) {
                 return [];
             }
+
+            // A bare single ref (`{model_type, model_id}`) stored under a FILES
+            // field is a valid one-item list — wrap it so it isn't mistaken for
+            // a list of refs and iterated into its scalar members.
+            if (isset($decoded['model_type'], $decoded['model_id'])) {
+                $decoded = [$decoded];
+            }
+
             return collect($decoded)
-                ->map(fn ($item) => is_array($item) ? self::resolveOneFile($item) : null)
+                ->map(fn ($item) => $item instanceof $base
+                    ? $item
+                    : (is_array($item) ? self::resolveOneFile($item) : null))
                 ->filter()
                 ->values()
                 ->all();
         }
 
-        return is_array($decoded) ? self::resolveOneFile($decoded) : null;
+        return $decoded instanceof $base 
+            ? $decoded 
+            : (is_array($decoded) ? self::resolveOneFile($decoded) : null);
     }
 
     private static function resolveOneFile(array $ref): ?File
@@ -242,7 +261,9 @@ class ValueCaster
     {
         $ref = self::toFileReference($value, $multi);
         if ($ref === null) {
-            return $asJsonString ? (string) $value : $value;
+            // Unresolvable value (single mode) — store null rather than
+            // stringifying it to the literal "Array" / a lossy cast.
+            return null;
         }
         return $asJsonString ? json_encode($ref) : $ref;
     }
@@ -250,6 +271,11 @@ class ValueCaster
     private static function toFileReference(mixed $value, bool $multi): mixed
     {
         if ($multi) {
+            // A bare single ref (`{model_type, model_id}`) is one item, not a
+            // list of its scalar members.
+            if (is_array($value) && isset($value['model_type'], $value['model_id'])) {
+                $value = [$value];
+            }
             $list = is_array($value) ? $value : [$value];
             return collect($list)
                 ->map(fn ($file) => self::oneFileReference($file))

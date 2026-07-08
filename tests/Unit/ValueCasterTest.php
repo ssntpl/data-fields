@@ -6,9 +6,22 @@ use Carbon\Carbon;
 use Ssntpl\DataFields\Support\FieldType;
 use Ssntpl\DataFields\Support\ValueCaster;
 use Ssntpl\DataFields\Tests\TestCase;
+use Ssntpl\LaravelFiles\Models\File;
 
 class ValueCasterTest extends TestCase
 {
+    private function makeFile(): File
+    {
+        $file             = new File();
+        $file->owner_id   = 0;
+        $file->owner_type = '';
+        $file->type       = 'test';
+        $file->key        = 'tmp/' . bin2hex(random_bytes(4));
+        $file->disk       = 'local';
+        $file->save();
+        return $file;
+    }
+
     public function test_bool_write_returns_canonical_string_in_row_mode(): void
     {
         $this->assertSame('1', ValueCaster::castForWrite(FieldType::Bool, true));
@@ -58,5 +71,32 @@ class ValueCasterTest extends TestCase
         // Both forms work — the caller can pass either.
         $this->assertSame(3.5, ValueCaster::castForRead(FieldType::Number, '3.5'));
         $this->assertSame(3.5, ValueCaster::castForRead('number', '3.5'));
+    }
+
+    public function test_single_ref_under_files_field_hydrates_as_list_row_mode(): void
+    {
+        $file = $this->makeFile();
+        $raw  = json_encode(['model_type' => File::class, 'model_id' => $file->id]);
+
+        $result = ValueCaster::castForRead(FieldType::Files, $raw);
+
+        $this->assertIsArray($result);
+        $this->assertCount(1, $result);
+        $this->assertInstanceOf(File::class, $result[0]);
+        $this->assertSame($file->id, $result[0]->id);
+    }
+
+    public function test_single_ref_under_files_field_hydrates_as_list_json_mode(): void
+    {
+        $file = $this->makeFile();
+        $ref  = ['model_type' => File::class, 'model_id' => $file->id];
+
+        // JSON mode passes an already-decoded native ref (assoc array).
+        $result = ValueCaster::castNativeRead(FieldType::Files, $ref);
+
+        $this->assertIsArray($result);
+        $this->assertCount(1, $result);
+        $this->assertInstanceOf(File::class, $result[0]);
+        $this->assertSame($file->id, $result[0]->id);
     }
 }
