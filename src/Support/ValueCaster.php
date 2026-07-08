@@ -169,18 +169,30 @@ class ValueCaster
      */
     private static function resolveFiles(mixed $decoded, bool $multi): mixed
     {
+        $base = self::fileBaseClass();
+
         if ($multi) {
+            // A single File passed to a FILES field hydrates as a one-item list.
+            if ($decoded instanceof $base) {
+                return [$decoded];
+            }
+
             if (!is_array($decoded)) {
                 return [];
             }
+            
             return collect($decoded)
-                ->map(fn ($item) => is_array($item) ? self::resolveOneFile($item) : null)
+                ->map(fn ($item) => $item instanceof $base
+                    ? $item
+                    : (is_array($item) ? self::resolveOneFile($item) : null))
                 ->filter()
                 ->values()
                 ->all();
         }
 
-        return is_array($decoded) ? self::resolveOneFile($decoded) : null;
+        return $decoded instanceof $base 
+            ? $decoded 
+            : (is_array($decoded) ? self::resolveOneFile($decoded) : null);
     }
 
     private static function resolveOneFile(array $ref): ?File

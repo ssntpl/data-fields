@@ -6,9 +6,22 @@ use Ssntpl\DataFields\Support\DataField;
 use Ssntpl\DataFields\Support\FieldType;
 use Ssntpl\DataFields\Tests\Models\TestOwner;
 use Ssntpl\DataFields\Tests\TestCase;
+use Ssntpl\LaravelFiles\Models\File;
 
 class DataFieldCastTest extends TestCase
 {
+    private function makeFile(): File
+    {
+        $file             = new File();
+        $file->owner_id   = 0;
+        $file->owner_type = '';
+        $file->type       = 'test';
+        $file->key        = 'tmp/' . bin2hex(random_bytes(4));
+        $file->disk       = 'local';
+        $file->save();
+        return $file;
+    }
+
     public function test_null_column_returns_null(): void
     {
         $owner = TestOwner::create(['name' => 'Empty']);
@@ -166,5 +179,71 @@ class DataFieldCastTest extends TestCase
         $loaded = TestOwner::find($owner->id);
         $this->assertInstanceOf(DataField::class, $loaded->user_settings);
         $this->assertSame('bar', $loaded->user_settings->foo->value);
+    }
+
+    public function test_file_field_round_trips_to_File_instance(): void
+    {
+        $file  = $this->makeFile();
+        $owner = TestOwner::create(['name' => 'P']);
+
+        $owner->user_settings = DataField::section(items: [
+            ['key' => 'avatar', 'type' => 'file', 'value' => $file],
+        ]);
+        $owner->save();
+
+        $loaded = TestOwner::find($owner->id);
+        $this->assertInstanceOf(File::class, $loaded->user_settings->avatar->value);
+        $this->assertSame($file->id, $loaded->user_settings->avatar->value->id);
+    }
+
+    public function test_files_field_round_trips_to_File_list(): void
+    {
+        $f1 = $this->makeFile();
+        $f2 = $this->makeFile();
+        $f3 = $this->makeFile();
+        $owner = TestOwner::create(['name' => 'P']);
+
+        $owner->user_settings = DataField::section();
+        $owner->user_settings->addField([
+            'key' => 'attachments', 'type' => 'files', 'value' => [$f1, $f2, $f3],
+        ]);
+        $owner->save();
+
+        $loaded = TestOwner::find($owner->id);
+        $value  = $loaded->user_settings->attachments->value;
+
+        $this->assertIsArray($value);
+        $this->assertCount(3, $value);
+        $this->assertContainsOnlyInstancesOf(File::class, $value);
+        $this->assertSame([$f1->id, $f2->id, $f3->id], array_map(fn ($f) => $f->id, $value));
+    }
+
+    public function test_single_file_assigned_to_files_field_wraps_to_list(): void
+    {
+        $file  = $this->makeFile();
+        $owner = TestOwner::create(['name' => 'P']);
+
+        $owner->user_settings = DataField::section(items: [
+            ['key' => 'docs', 'type' => 'files', 'value' => $file],
+        ]);
+        $owner->save();
+
+        $value = TestOwner::find($owner->id)->user_settings->docs->value;
+        $this->assertIsArray($value);
+        $this->assertCount(1, $value);
+        $this->assertSame($file->id, $value[0]->id);
+    }
+
+    public function test_empty_files_field_round_trips_as_empty_list(): void
+    {
+        $owner = TestOwner::create(['name' => 'P']);
+
+        $owner->user_settings = DataField::section(items: [
+            ['key' => 'attachments', 'type' => 'files', 'value' => []],
+        ]);
+        $owner->save();
+
+        $value = TestOwner::find($owner->id)->user_settings->attachments->value;
+        $this->assertSame([], $value);
     }
 }
