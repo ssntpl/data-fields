@@ -45,10 +45,12 @@ trait HasDataFields
 
         if ($row === null) {
             $type ??= FieldType::Text;
+            // `type` must precede `value`: attributes fill in array order and
+            // RowValueCast::set() reads $attributes['type'] to pick the cast.
             return $this->fields()->create([
                 'key'   => $key,
-                'value' => $value,
                 'type'  => $type instanceof FieldType ? $type->value : $type,
+                'value' => $value,
             ]);
         }
 

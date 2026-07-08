@@ -192,6 +192,24 @@ class RowModeTest extends TestCase
         $this->assertSame(1, $owner->fields()->count());
     }
 
+    public function test_set_field_value_creates_structured_types_correctly(): void
+    {
+        $owner = TestOwner::create(['name' => 'Structured']);
+
+        // Regression: `type` must be filled before `value` in the create
+        // path, otherwise RowValueCast falls back to text and an array
+        // value is stored as the literal string "Array".
+        $tags = ['red', 'green'];
+        $owner->setFieldValue('tags', $tags, FieldType::Array_);
+
+        $raw = $owner->fields()->where('key', 'tags')->value('value');
+        $this->assertSame(json_encode($tags), $raw);
+        $this->assertSame($tags, $owner->getFieldValue('tags'));
+
+        $owner->setFieldValue('prefs', ['k' => 'v'], FieldType::Json);
+        $this->assertSame(['k' => 'v'], $owner->getFieldValue('prefs'));
+    }
+
     public function test_set_field_value_honours_type_on_create_and_update(): void
     {
         $owner = TestOwner::create(['name' => 'Typed']);
